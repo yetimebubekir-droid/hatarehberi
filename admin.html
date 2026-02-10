@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Yetki Yönetimi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+    <nav class="bg-slate-900 text-white p-5 shadow-2xl flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500 p-2 rounded-lg text-slate-900">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <h1 class="font-black tracking-widest text-sm uppercase">Yönetim Paneli</h1>
+        </div>
+        <a href="anasayfa.html" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-xs font-bold transition-all border border-slate-700">← Geri Dön</a>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-6 md:p-10">
+        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-8 border-b border-slate-100 bg-slate-50/50">
+                <h2 class="text-2xl font-black text-slate-800">Kayıtlı Kullanıcılar</h2>
+                <p class="text-slate-500 text-sm mt-1">Üyelerin e-posta adreslerini görebilir ve yetkilerini buradan yönetebilirsiniz.</p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                        <tr>
+                            <th class="p-6">Üye E-Posta</th>
+                            <th class="p-6 text-center">Ekleme</th>
+                            <th class="p-6 text-center">Düzenleme</th>
+                            <th class="p-6 text-center">Silme</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody" class="divide-y divide-slate-50">
+                        </tbody>
+                </table>
+            </div>
+            <div id="loader" class="p-20 text-center text-slate-400 italic font-medium">
+                Üyeler taranıyor...
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyB0qwwnsROWM4qkWvwJVEzL4aqOo0qyS9Y", 
+            authDomain: "hatalar-515f5.firebaseapp.com", 
+            projectId: "hatalar-515f5", 
+            storageBucket: "hatalar-515f5.firebasestorage.app", 
+            messagingSenderId: "772961588572", 
+            appId: "1:772961588572:web:cd32686b71680fa29bdd99" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const ADMIN_UID = "qakNQ7e7SjfQNECW3Terv86OVxV2";
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user || user.uid !== ADMIN_UID) {
+                window.location.href = "anasayfa.html";
+            }
+        });
+
+        // ÜYELERİ DİNLE VE LİSTELE
+        onSnapshot(collection(db, "users"), (snapshot) => {
+            const tbody = document.getElementById('userTableBody');
+            const loader = document.getElementById('loader');
+            tbody.innerHTML = "";
+            loader.style.display = "none";
+
+            snapshot.docs.forEach(uDoc => {
+                const u = uDoc.data();
+                if(uDoc.id === ADMIN_UID) return; // Admini listede gösterme
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-indigo-50/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-black">
+                                ${u.email ? u.email[0].toUpperCase() : '?'}
+                            </div>
+                            <span class="font-bold text-slate-700">${u.email || 'Bilinmeyen'}</span>
+                        </div>
+                    </td>
+                    <td class="p-6 text-center">
+                        <input type="checkbox" ${u.canAdd ? 'checked' : ''} onchange="upd('${uDoc.id}', 'canAdd', this.checked)" class="w-6 h-6 accent-indigo-600 cursor-pointer">
+                    </td>
+                    <td class="p-6 text-center">
+                        <input type="checkbox" ${u.canEdit ? 'checked' : ''} onchange="upd('${uDoc.id}', 'canEdit', this.checked)" class="w-6 h-6 accent-indigo-600 cursor-pointer">
+                    </td>
+                    <td class="p-6 text-center">
+                        <input type="checkbox" ${u.canDelete ? 'checked' : ''} onchange="upd('${uDoc.id}', 'canDelete', this.checked)" class="w-6 h-6 accent-indigo-600 cursor-pointer">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        });
+
+        window.upd = async (id, field, val) => {
+            try {
+                await updateDoc(doc(db, "users", id), { [field]: val });
+            } catch (err) { alert("Hata: " + err.message); }
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

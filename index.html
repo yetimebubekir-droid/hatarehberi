@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Paneli - Teknik Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl w-full max-w-md border border-slate-100">
+        <div class="text-center mb-10">
+            <div class="bg-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-200">
+                <i data-lucide="shield-check" class="text-white" size="40"></i>
+            </div>
+            <h1 class="text-3xl font-black text-slate-800 tracking-tighter uppercase">Teknik Sistem</h1>
+            <p id="statusLabel" class="text-slate-400 text-sm mt-2 font-medium italic">Devam etmek için oturum açın</p>
+        </div>
+
+        <form id="authForm" class="space-y-4">
+            <div class="relative">
+                <i data-lucide="mail" class="absolute left-4 top-4 text-slate-400" size="20"></i>
+                <input type="email" id="email" placeholder="E-posta Adresi" required 
+                    class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-700">
+            </div>
+
+            <div class="relative">
+                <i data-lucide="lock" class="absolute left-4 top-4 text-slate-400" size="20"></i>
+                <input type="password" id="password" placeholder="Şifre" required 
+                    class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-700">
+            </div>
+
+            <button type="submit" id="submitBtn" 
+                class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest text-sm">
+                Giriş Yap
+            </button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-slate-50 text-center">
+            <button onclick="toggleMode()" id="toggleBtn" class="text-indigo-600 font-bold text-sm hover:underline decoration-2 underline-offset-4">
+                Hesabınız yok mu? Yeni kayıt oluşturun
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // FIREBASE YAPILANDIRMASI
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0qwwnsROWM4qkWvwJVEzL4aqOo0qyS9Y",
+            authDomain: "hatalar-515f5.firebaseapp.com",
+            projectId: "hatalar-515f5",
+            storageBucket: "hatalar-515f5.firebasestorage.app",
+            messagingSenderId: "772961588572",
+            appId: "1:772961588572:web:cd32686b71680fa29bdd99"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let isLogin = true;
+
+        // Mod Değiştirme Fonksiyonu
+        window.toggleMode = () => {
+            isLogin = !isLogin;
+            const btn = document.getElementById('submitBtn');
+            const label = document.getElementById('statusLabel');
+            const toggle = document.getElementById('toggleBtn');
+            
+            btn.innerText = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
+            label.innerText = isLogin ? 'Devam etmek için oturum açın' : 'Sisteme erişim için hesap oluşturun';
+            toggle.innerText = isLogin ? 'Hesabınız yok mu? Yeni kayıt oluşturun' : 'Zaten hesabınız var mı? Giriş yapın';
+        };
+
+        // Form Gönderme İşlemi
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    const res = await createUserWithEmailAndPassword(auth, email, password);
+                    
+                    // ADMIN PANELİNDE LİSTELENMESİ İÇİN FIRESTORE KAYDI
+                    // 'users' koleksiyonuna kullanıcının UID'si ile doküman oluşturuyoruz
+                    await setDoc(doc(db, "users", res.user.uid), {
+                        email: email,           // Listelenecek mail adresi
+                        uid: res.user.uid,      // Kimlik ID'si
+                        canAdd: true,           // Varsayılan yetki: Ekleme yapabilir
+                        canEdit: false,          // Varsayılan yetki: Düzenleyemez
+                        canDelete: false,        // Varsayılan yetki: Silemez
+                        role: "user",
+                        createdAt: new Date()
+                    });
+                    console.log("Kullanıcı başarıyla Firestore'a kaydedildi.");
+                }
+                // Başarılı işlemden sonra anasayfaya yönlendir
+                window.location.href = "anasayfa.html";
+            } catch (err) { 
+                console.error("Auth Hatası:", err);
+                alert("Hata: " + err.message); 
+            }
+        });
+
+        // Kullanıcı zaten giriş yapmışsa direkt anasayfaya gönder
+        onAuthStateChanged(auth, (user) => { 
+            if (user) window.location.href = "anasayfa.html"; 
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

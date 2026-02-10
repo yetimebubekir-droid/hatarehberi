@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Arıza Portalı</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .filter-input {
+            @apply w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all;
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+    <nav class="bg-white border-b p-4 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <span class="font-black text-indigo-600 text-xl tracking-tighter flex items-center gap-2">
+                <i data-lucide="shield-alert"></i> TEKNİK PANEL
+            </span>
+            <div class="flex items-center gap-3">
+                <a id="adminLink" href="admin.html" class="hidden bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-amber-600 transition-all">Admin</a>
+                <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-8">
+            <div class="w-full">
+                <h1 class="text-2xl font-black text-slate-800 mb-1 tracking-tight">Arıza Veri Tabanı</h1>
+                <p class="text-slate-500 text-sm italic">Filtreleri kullanarak spesifik arıza kayıtlarına ulaşın.</p>
+            </div>
+            <button id="addBtn" onclick="openAddModal()" class="hidden whitespace-nowrap bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold shadow-indigo-200 shadow-xl hover:bg-indigo-700 transition-all active:scale-95">
+                Yeni Kayıt Ekle
+            </button>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-10">
+            <div class="flex items-center gap-2 mb-4 text-indigo-600 font-bold text-sm">
+                <i data-lucide="filter" size="18"></i> GELİŞMİŞ FİLTRELEME
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase ml-1">Hata Tanımı</label>
+                    <input type="text" id="fTanim" onkeyup="filterCards()" placeholder="Tanım ara..." class="filter-input">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase ml-1">Hata Kodu</label>
+                    <input type="text" id="fKod" onkeyup="filterCards()" placeholder="Kod ara..." class="filter-input">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase ml-1">Model</label>
+                    <input type="text" id="fModel" onkeyup="filterCards()" placeholder="Model ara..." class="filter-input">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase ml-1">Varyant</label>
+                    <input type="text" id="fVaryant" onkeyup="filterCards()" placeholder="Varyant ara..." class="filter-input">
+                </div>
+            </div>
+        </div>
+
+        <div id="cardsContainer" class="flex flex-col gap-4">
+            </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-black text-slate-800" id="modalTitle text-indigo-600">Arıza Formu</h3>
+                <button onclick="closeModals()" class="p-2 bg-slate-100 rounded-full hover:rotate-90 transition-all"><i data-lucide="x"></i></button>
+            </div>
+            <form id="arizaForm" class="space-y-4">
+                <input type="hidden" id="editId">
+                <input type="text" id="hataTanimi" placeholder="Hata Tanımı (Örn: Aşırı Akım)" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="hataKodu" placeholder="Hata Kodu" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
+                    <input type="text" id="model" placeholder="Model" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
+                </div>
+                <input type="text" id="varyant" placeholder="Varyant" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
+                
+                <div id="cozumInputGroup" class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scroll">
+                    <input type="text" class="cozum-input w-full p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-sm" placeholder="Çözüm yöntemi ekleyin..." oninput="handleDynamicInput(this)">
+                </div>
+                <button type="button" onclick="saveData()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-widest">Veriyi Sisteme Kaydet</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-2xl relative">
+            <div class="bg-indigo-600 p-10 text-white relative">
+                <button onclick="closeModals()" class="absolute top-6 right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"><i data-lucide="x"></i></button>
+                <span class="text-[10px] font-black tracking-widest bg-white/20 px-3 py-1 rounded-full">KAYIT DETAYI</span>
+                <h2 class="text-4xl font-black mt-4 uppercase leading-none" id="detayBaslik"></h2>
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <div class="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold uppercase border border-white/20" id="detayKod"></div>
+                    <div class="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold uppercase border border-white/20" id="detayModel"></div>
+                    <div class="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold uppercase border border-white/20" id="detayVaryant"></div>
+                </div>
+            </div>
+            <div class="p-10 max-h-[50vh] overflow-y-auto custom-scroll" id="detayCozumListesi"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyB0qwwnsROWM4qkWvwJVEzL4aqOo0qyS9Y", 
+            authDomain: "hatalar-515f5.firebaseapp.com", 
+            projectId: "hatalar-515f5", 
+            storageBucket: "hatalar-515f5.firebasestorage.app", 
+            messagingSenderId: "772961588572", 
+            appId: "1:772961588572:web:cd32686b71680fa29bdd99" 
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const ADMIN_UID = "qakNQ7e7SjfQNECW3Terv86OVxV2";
+        let userPerms = { canAdd: false, canEdit: false, canDelete: false };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            if (user.uid === ADMIN_UID) {
+                document.getElementById('adminLink').classList.remove('hidden');
+                userPerms = { canAdd: true, canEdit: true, canDelete: true };
+                document.getElementById('addBtn').classList.remove('hidden');
+            } else {
+                const docSnap = await getDoc(doc(db, "users", user.uid));
+                if (docSnap.exists()) {
+                    userPerms = docSnap.data();
+                    if (userPerms.canAdd) document.getElementById('addBtn').classList.remove('hidden');
+                }
+            }
+            loadCards();
+        });
+
+        window.logout = () => signOut(auth);
+
+        // ÇOKLU FİLTRELEME MANTIĞI
+        window.filterCards = () => {
+            const fT = document.getElementById('fTanim').value.toLowerCase();
+            const fK = document.getElementById('fKod').value.toLowerCase();
+            const fM = document.getElementById('fModel').value.toLowerCase();
+            const fV = document.getElementById('fVaryant').value.toLowerCase();
+            
+            const cards = document.getElementsByClassName('ariza-card');
+
+            Array.from(cards).forEach(card => {
+                const cT = card.getAttribute('data-tanim').toLowerCase();
+                const cK = card.getAttribute('data-kod').toLowerCase();
+                const cM = card.getAttribute('data-model').toLowerCase();
+                const cV = card.getAttribute('data-varyant').toLowerCase();
+
+                const isMatch = cT.includes(fT) && cK.includes(fK) && cM.includes(fM) && cV.includes(fV);
+                card.style.display = isMatch ? "flex" : "none";
+            });
+        };
+
+        window.openAddModal = () => {
+            document.getElementById('arizaForm').reset();
+            document.getElementById('editId').value = "";
+            resetCozumInputs();
+            document.getElementById('modal').classList.remove('hidden');
+        };
+
+        window.closeModals = () => {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('detailModal').classList.add('hidden');
+        };
+
+        window.handleDynamicInput = (el) => {
+            const container = document.getElementById('cozumInputGroup');
+            const inputs = container.querySelectorAll('.cozum-input');
+            if (inputs[inputs.length - 1].value.trim() !== "") {
+                const input = document.createElement('input');
+                input.className = "cozum-input w-full p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-sm mt-2";
+                input.placeholder = "Diğer çözüm yolu...";
+                input.oninput = () => handleDynamicInput(input);
+                container.appendChild(input);
+                container.scrollTop = container.scrollHeight;
+            }
+        };
+
+        const resetCozumInputs = () => {
+            document.getElementById('cozumInputGroup').innerHTML = `<input type="text" class="cozum-input w-full p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-sm" placeholder="Çözüm yöntemi ekleyin..." oninput="handleDynamicInput(this)">`;
+        };
+
+        window.saveData = async () => {
+            const id = document.getElementById('editId').value;
+            const cozumler = Array.from(document.querySelectorAll('.cozum-input')).map(i => i.value).filter(v => v !== "");
+            const data = {
+                title: document.getElementById('hataTanimi').value,
+                code: document.getElementById('hataKodu').value,
+                model: document.getElementById('model').value,
+                variant: document.getElementById('varyant').value,
+                solutions: cozumler,
+                timestamp: new Date()
+            };
+            id ? await updateDoc(doc(db, "arizalar", id), data) : await addDoc(collection(db, "arizalar"), data);
+            closeModals();
+        };
+
+        function loadCards() {
+            onSnapshot(query(collection(db, "arizalar"), orderBy("timestamp", "desc")), (snapshot) => {
+                const container = document.getElementById('cardsContainer');
+                container.innerHTML = "";
+                snapshot.docs.forEach(docSnap => {
+                    const item = docSnap.data();
+                    container.innerHTML += `
+                        <div class="ariza-card bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center cursor-pointer hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300 group" 
+                             data-tanim="${item.title}" data-kod="${item.code}" data-model="${item.model}" data-varyant="${item.variant || ''}"
+                             onclick="showDetail('${docSnap.id}')">
+                            <div class="flex-1">
+                                <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors">${item.title}</h3>
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    <span class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full uppercase">KOD: ${item.code || '-'}</span>
+                                    <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full uppercase">MODEL: ${item.model || '-'}</span>
+                                    ${item.variant ? `<span class="text-[9px] font-black bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full uppercase">VARYANT: ${item.variant}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-4 md:mt-0" onclick="event.stopPropagation()">
+                                ${userPerms.canEdit ? `<button onclick="editItem('${docSnap.id}')" class="p-3 text-slate-300 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all"><i data-lucide="edit-3" size="20"></i></button>` : ''}
+                                ${userPerms.canDelete ? `<button onclick="deleteItem('${docSnap.id}')" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"><i data-lucide="trash-2" size="20"></i></button>` : ''}
+                                <div class="p-3 text-slate-300 group-hover:text-indigo-500 transition-all"><i data-lucide="chevron-right" size="20"></i></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                lucide.createIcons();
+                filterCards();
+            });
+        }
+
+        window.showDetail = async (id) => {
+            const docSnap = await getDoc(doc(db, "arizalar", id));
+            const data = docSnap.data();
+            document.getElementById('detayBaslik').innerText = data.title;
+            document.getElementById('detayKod').innerText = "HATA KODU: " + (data.code || "-");
+            document.getElementById('detayModel').innerText = "CİHAZ MODEL: " + (data.model || "-");
+            document.getElementById('detayVaryant').innerText = "VARYANT: " + (data.variant || "-");
+            document.getElementById('detayCozumListesi').innerHTML = `
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-6 tracking-widest">Çözüm Talimatları</p>
+                ${data.solutions.map((s, i) => `
+                    <div class="flex gap-5 p-6 bg-slate-50 border border-slate-100 rounded-[2rem] mb-4 group hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all">
+                        <span class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">${i+1}</span>
+                        <p class="text-slate-700 font-semibold leading-relaxed pt-2">${s}</p>
+                    </div>
+                `).join('')}
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.editItem = async (id) => {
+            const docSnap = await getDoc(doc(db, "arizalar", id));
+            const data = docSnap.data();
+            document.getElementById('editId').value = id;
+            document.getElementById('hataTanimi').value = data.title;
+            document.getElementById('hataKodu').value = data.code;
+            document.getElementById('model').value = data.model;
+            document.getElementById('varyant').value = data.variant || "";
+            
+            const group = document.getElementById('cozumInputGroup');
+            group.innerHTML = "";
+            data.solutions.forEach(s => {
+                const input = document.createElement('input');
+                input.className = "cozum-input w-full p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-sm mt-2";
+                input.value = s;
+                input.oninput = () => handleDynamicInput(input);
+                group.appendChild(input);
+            });
+            handleDynamicInput(group.lastChild || document.createElement('input'));
+            document.getElementById('modal').classList.remove('hidden');
+        };
+
+        window.deleteItem = async (id) => { if(confirm("Dikkat! Bu arıza kaydı kalıcı olarak silinecek. Onaylıyor musunuz?")) await deleteDoc(doc(db, "arizalar", id)); };
+        lucide.createIcons();
+    </script>
+</body>
+</html>
