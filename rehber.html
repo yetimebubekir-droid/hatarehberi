@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FGI Servis Arıza Rehberi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+    <div id="auth-container" class="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
+        <div class="text-center mb-8">
+            <i class="fas fa-tools text-4xl text-blue-600 mb-2"></i>
+            <h2 id="auth-title" class="text-2xl font-bold text-gray-800">Giriş Yap</h2>
+        </div>
+        <div id="register-fields" class="hidden">
+            <input type="text" id="reg-name" placeholder="Ad Soyad" class="w-full p-3 mb-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
+        </div>
+        <input type="email" id="auth-email" placeholder="E-posta" class="w-full p-3 mb-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
+        <input type="password" id="auth-pass" placeholder="Şifre" class="w-full p-3 mb-6 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
+        <button onclick="handleAuth()" id="auth-btn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 active:scale-95 transition">Giriş Yap</button>
+        <p class="text-center mt-6 text-gray-500 text-sm">
+            <span id="auth-toggle-text">Hesabınız yok mu?</span> 
+            <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-toggle-link" class="text-blue-600 font-semibold ml-1">Kaydol</a>
+        </p>
+    </div>
+
+    <div id="main-container" class="hidden p-4 md:p-8 max-w-5xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight italic">FGI SERVİS <span class="text-blue-600 underline">ARIZA REHBERİ</span></h1>
+            <button onclick="logout()" class="bg-white text-red-500 border border-red-100 px-4 py-2 rounded-xl shadow-sm hover:bg-red-50 transition"><i class="fas fa-sign-out-alt mr-2"></i>Çıkış</button>
+        </header>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <p class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest"><i class="fas fa-search mr-2"></i>Hızlı Arama / Filtrele</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" id="filter-tanim" oninput="filterCards()" placeholder="Arıza Tanımı..." class="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white transition outline-none">
+                <input type="text" id="filter-kod" oninput="filterCards()" placeholder="Hata Kodu..." class="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white transition outline-none font-mono">
+                <input type="text" id="filter-model" oninput="filterCards()" placeholder="Ürün Modeli..." class="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white transition outline-none">
+            </div>
+        </div>
+
+        <button onclick="showModal()" class="w-full bg-blue-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-100 font-bold mb-8 hover:bg-blue-700 transition flex items-center justify-center gap-2 active:scale-[0.98]">
+            <i class="fas fa-plus-circle text-xl"></i> Yeni Arıza Rehberi Oluştur
+        </button>
+
+        <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modal-title" class="text-xl font-bold text-gray-800">Arıza Detayı</h2>
+                <button onclick="hideModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div id="modal-content" class="overflow-y-auto custom-scrollbar pr-2 flex-1">
+                <div id="form-fields">
+                    <div class="space-y-4">
+                        <label class="block"><span class="text-xs font-bold text-gray-500 uppercase">Arıza Tanımı</span>
+                        <input type="text" id="ariza-tanimi" class="w-full p-3 mt-1 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"></label>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="block"><span class="text-xs font-bold text-gray-500 uppercase">Hata Kodu</span>
+                            <input type="text" id="hata-kodu" class="w-full p-3 mt-1 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"></label>
+                            
+                            <label class="block"><span class="text-xs font-bold text-gray-500 uppercase">Model</span>
+                            <input type="text" id="urun-modeli" class="w-full p-3 mt-1 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"></label>
+                        </div>
+
+                        <div id="cozum-listesi">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Çözüm Yöntemleri</label>
+                            </div>
+                    </div>
+                </div>
+
+                <div id="view-fields" class="hidden space-y-4">
+                    </div>
+            </div>
+
+            <div id="modal-footer" class="mt-6 flex gap-3">
+                <button id="save-btn" onclick="saveData()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100">Kaydet</button>
+                <button id="share-btn" class="hidden flex-1 bg-green-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-green-100"><i class="fab fa-whatsapp mr-2"></i>Paylaş</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmaXGmpmokFNwIzyMRv48LiHu5DcMeAVg",
+            authDomain: "fgi-servis-rehberi.firebaseapp.com",
+            projectId: "fgi-servis-rehberi",
+            storageBucket: "fgi-servis-rehberi.firebasestorage.app",
+            messagingSenderId: "747343286381",
+            appId: "1:747343286381:web:d3a1415e9464ea2a90af64"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let isLoginMode = true;
+        let currentUser = null;
+        let editingId = null;
+        let allData = []; // Canlı filtreleme için yerel kopya
+
+        // --- AUTH ---
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "Giriş Yap" : "Yeni Üye Kaydı";
+            document.getElementById('auth-btn').innerText = isLoginMode ? "Giriş Yap" : "Üye Ol ve Giriş Yap";
+            document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
+            document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Hesabınız yok mu?" : "Zaten üye misiniz?";
+            document.getElementById('auth-toggle-link').innerText = isLoginMode ? "Kaydol" : "Giriş Yap";
+        };
+
+        window.handleAuth = async () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                } else {
+                    const name = document.getElementById('reg-name').value;
+                    const res = await createUserWithEmailAndPassword(auth, email, pass);
+                    await updateProfile(res.user, { displayName: name });
+                    location.reload();
+                }
+            } catch (error) { alert("Hata: " + error.message); }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            document.getElementById('auth-container').classList.toggle('hidden', !!user);
+            document.getElementById('main-container').classList.toggle('hidden', !user);
+            if (user) loadData();
+        });
+
+        window.logout = () => signOut(auth);
+
+        // --- CANLI FİLTRELEME ---
+        window.filterCards = () => {
+            const fTanim = document.getElementById('filter-tanim').value.toLowerCase();
+            const fKod = document.getElementById('filter-kod').value.toLowerCase();
+            const fModel = document.getElementById('filter-model').value.toLowerCase();
+
+            const filtered = allData.filter(item => 
+                item.tanim.toLowerCase().includes(fTanim) &&
+                item.kod.toLowerCase().includes(fKod) &&
+                item.model.toLowerCase().includes(fModel)
+            );
+            renderCards(filtered);
+        };
+
+        // --- VERİ İŞLEMLERİ ---
+        window.addNewMethodInput = (input) => {
+            const container = document.getElementById('cozum-listesi');
+            const inputs = container.querySelectorAll('.cozum-input');
+            if (input === inputs[inputs.length - 1] && input.value !== "") {
+                const div = document.createElement('div');
+                div.className = "flex gap-2 mb-2 animation-slide-in";
+                div.innerHTML = `<input type="text" class="cozum-input w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white transition" placeholder="${inputs.length + 1}. Yöntemi yazın..." oninput="addNewMethodInput(this)">`;
+                container.appendChild(div);
+            }
+        };
+
+        window.showModal = (data = null, isView = false) => {
+            editingId = data ? data.id : null;
+            document.getElementById('modal').classList.remove('hidden');
+            const formFields = document.getElementById('form-fields');
+            const viewFields = document.getElementById('view-fields');
+            const saveBtn = document.getElementById('save-btn');
+            const shareBtn = document.getElementById('share-btn');
+
+            if (isView) {
+                // DETAY GÖRÜNÜM MODU
+                document.getElementById('modal-title').innerText = "Arıza Detayı";
+                formFields.classList.add('hidden');
+                viewFields.classList.remove('hidden');
+                saveBtn.classList.add('hidden');
+                shareBtn.classList.remove('hidden');
+
+                viewFields.innerHTML = `
+                    <div class="bg-blue-50 p-4 rounded-2xl mb-4 border border-blue-100">
+                        <h4 class="text-blue-800 font-bold text-lg">${data.tanim}</h4>
+                        <div class="flex gap-2 mt-2">
+                            <span class="bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs font-bold">${data.kod}</span>
+                            <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-bold">${data.model}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Çözüm Adımları</p>
+                        ${data.yontemler.map((y, i) => `
+                            <div class="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0">${i+1}</span>
+                                <p class="text-gray-700 text-sm">${y}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="mt-6 pt-4 border-t text-[10px] text-gray-400">
+                        Sistem Kaydı: ${data.user} | ${data.fullDate}
+                    </div>
+                `;
+
+                shareBtn.onclick = () => {
+                    const text = `*FGI ARIZA REHBERİ*\n-------------------\n🚨 *Arıza:* ${data.tanim}\n🔢 *Kod:* ${data.kod}\n📦 *Model:* ${data.model}\n\n✅ *Çözüm Yöntemleri:*\n${data.yontemler.map((y,i) => `${i+1}. ${y}`).join('\n')}`;
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`);
+                };
+
+            } else {
+                // DÜZENLEME / EKLEME MODU
+                document.getElementById('modal-title').innerText = data ? "Kaydı Düzenle" : "Yeni Arıza Rehberi";
+                formFields.classList.remove('hidden');
+                viewFields.classList.add('hidden');
+                saveBtn.classList.remove('hidden');
+                shareBtn.classList.add('hidden');
+
+                document.getElementById('ariza-tanimi').value = data ? data.tanim : "";
+                document.getElementById('hata-kodu').value = data ? data.kod : "";
+                document.getElementById('urun-modeli').value = data ? data.model : "";
+                
+                const cozumContainer = document.getElementById('cozum-listesi');
+                cozumContainer.innerHTML = '<label class="block text-xs font-bold text-gray-500 uppercase mb-2">Çözüm Yöntemleri</label>';
+                
+                const yontemler = data ? data.yontemler : [""];
+                yontemler.forEach((y, i) => {
+                    const div = document.createElement('div');
+                    div.className = "flex gap-2 mb-2";
+                    div.innerHTML = `<input type="text" class="cozum-input w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none" value="${y}" placeholder="${i+1}. Yöntem" oninput="addNewMethodInput(this)">`;
+                    cozumContainer.appendChild(div);
+                });
+            }
+        };
+
+        window.hideModal = () => document.getElementById('modal').classList.add('hidden');
+
+        window.saveData = async () => {
+            const yontemler = Array.from(document.querySelectorAll('.cozum-input'))
+                                .map(i => i.value).filter(v => v.trim() !== "");
+            
+            const payload = {
+                tanim: document.getElementById('ariza-tanimi').value,
+                kod: document.getElementById('hata-kodu').value,
+                model: document.getElementById('urun-modeli').value,
+                yontemler: yontemler,
+                user: currentUser.displayName || currentUser.email,
+                date: serverTimestamp()
+            };
+
+            try {
+                if (editingId) {
+                    await updateDoc(doc(db, "arizalar", editingId), payload);
+                } else {
+                    await addDoc(collection(db, "arizalar"), payload);
+                }
+                hideModal();
+                loadData();
+            } catch (e) { console.error(e); }
+        };
+
+        window.loadData = async () => {
+            const q = query(collection(db, "arizalar"), orderBy("date", "desc"));
+            const snap = await getDocs(q);
+            allData = snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                fullDate: doc.data().date?.toDate().toLocaleString('tr-TR') || "Yeni"
+            }));
+            renderCards(allData);
+        };
+
+        function renderCards(dataList) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = "";
+
+            dataList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden";
+                card.innerHTML = `
+                    <div onclick='viewDetail("${item.id}")' class="cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-lg uppercase">${item.kod}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${item.fullDate}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg group-hover:text-blue-600 transition mb-1">${item.tanim}</h3>
+                        <p class="text-xs text-gray-500 font-semibold mb-4"><i class="fas fa-microchip mr-1"></i> Model: ${item.model}</p>
+                        
+                        <div class="flex items-center text-[10px] text-gray-400 pt-3 border-t border-gray-50">
+                            <i class="fas fa-user-edit mr-2"></i> ${item.user}
+                        </div>
+                    </div>
+                    <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="editItem('${item.id}')" class="bg-gray-100 text-gray-600 w-8 h-8 rounded-full hover:bg-blue-600 hover:text-white transition"><i class="fas fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteItem('${item.id}')" class="bg-gray-100 text-red-500 w-8 h-8 rounded-full hover:bg-red-600 hover:text-white transition"><i class="fas fa-trash text-[10px]"></i></button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.viewDetail = (id) => {
+            const item = allData.find(d => d.id === id);
+            showModal(item, true);
+        };
+
+        window.editItem = (id) => {
+            const item = allData.find(d => d.id === id);
+            showModal(item, false);
+        };
+
+        window.deleteItem = async (id) => {
+            if(confirm("Bu arıza kaydı silinecek. Onaylıyor musunuz?")) {
+                await deleteDoc(doc(db, "arizalar", id));
+                loadData();
+            }
+        };
+    </script>
+</body>
+</html>
